@@ -8,11 +8,14 @@ import { routeTree } from "./routeTree.gen";
 import "./styles.css";
 import reportWebVitals from "./reportWebVitals.ts";
 import { ThemeProvider } from "./components/thenme-provider.tsx";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+export const queryClient = new QueryClient();
 
 // Create a new router instance
 const router = createRouter({
   routeTree,
-  context: {},
+  context: { queryClient },
   defaultPreload: "intent",
   scrollRestoration: true,
   defaultStructuralSharing: true,
@@ -33,7 +36,9 @@ if (rootElement && !rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <ThemeProvider>
-        <RouterProvider router={router} />
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
       </ThemeProvider>
     </StrictMode>
   );

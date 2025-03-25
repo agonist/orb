@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { ChainSelector } from "../selector/chain-selector";
 import { AssetSelector } from "../selector/asset-selector";
 import { useState } from "react";
-import type { Asset, Chain } from "@/types";
+import type { Asset, Chain, TokenBalance } from "@/types";
 import { SelectBtn } from "../selector/select-btn";
 
 type Props = {
@@ -11,6 +11,7 @@ type Props = {
   setSelectedChain: (chain: Chain) => void;
   selectedAsset: Asset;
   setSelectedAsset: (asset: Asset) => void;
+  balances: TokenBalance[];
 };
 
 export const TokenSelectDialog = ({
@@ -19,6 +20,7 @@ export const TokenSelectDialog = ({
   setSelectedChain,
   selectedAsset,
   setSelectedAsset,
+  balances,
 }: Props) => {
   const [open, setOpen] = useState(false);
 
@@ -44,6 +46,7 @@ export const TokenSelectDialog = ({
         />
 
         <AssetSelector
+          balances={balances}
           assets={selectedChain.assets}
           selectedAsset={selectedAsset}
           setSelectedAsset={onAssetSelect}

@@ -2,20 +2,27 @@ import { useId } from "react";
 import { Input } from "../ui/input";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Asset } from "@/types";
+import type { Asset, TokenBalance } from "@/types";
 
 interface AssetSelectorProps {
   assets: Asset[];
   selectedAsset: Asset;
   setSelectedAsset: (asset: Asset) => void;
+  balances: TokenBalance[];
 }
 
 export const AssetSelector = ({
   assets,
   selectedAsset,
   setSelectedAsset,
+  balances,
 }: AssetSelectorProps) => {
   const id = useId();
+
+  function findAndFormatBalance(symbol: string) {
+    const balance = balances.find((b) => b.symbol === symbol)?.balance;
+    return parseFloat(Number(balance).toFixed(6)).toString();
+  }
 
   return (
     <div className="p-4 w-full flex flex-col gap-4">
@@ -48,9 +55,14 @@ export const AssetSelector = ({
               alt={asset.name}
               className="size-8"
             />
-            <div className="flex flex-col">
+            <div className="flex flex-col w-full">
               <span className="text-sm font-semibold">{asset.symbol}</span>
-              <span className="text-xs">{asset.name}</span>
+              <div className="flex gap-1 w-full">
+                <span className="text-xs grow">{asset.name}</span>
+                <span className="text-xs">
+                  {findAndFormatBalance(asset.symbol)}
+                </span>
+              </div>
             </div>
           </div>
         ))}

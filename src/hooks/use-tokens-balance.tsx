@@ -2,16 +2,7 @@ import { useAccount } from "wagmi";
 import { useEffect, useState, useMemo } from "react";
 import { erc20Abi, getContract, formatUnits } from "viem";
 import { usePublicClients } from "./use-public-clients";
-import type { Chain } from "@/types";
-
-type TokenBalance = {
-  symbol: string;
-  name: string;
-  address?: string;
-  balance: string;
-  chain: string;
-  chainId: number;
-};
+import type { Chain, TokenBalance } from "@/types";
 
 export const useTokenBalances = (chains: Chain[]) => {
   const { address } = useAccount();
@@ -63,7 +54,7 @@ export const useTokenBalances = (chains: Chain[]) => {
                 symbol: asset.symbol,
                 name: asset.name,
                 address: undefined,
-                balance: formatUnits(balance, 18),
+                balance: formatUnits(balance, asset.decimals),
                 chain: chain.name,
                 chainId: chain.chainId,
               }));

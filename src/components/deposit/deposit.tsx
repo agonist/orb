@@ -32,6 +32,7 @@ export const Deposit = () => {
             setSelectedChain={input.setSelectedChain}
             selectedAsset={input.selectedAsset}
             setSelectedAsset={input.setSelectedAsset}
+            balances={tokensBalance}
           />
         </div>
         <BalanceLabel

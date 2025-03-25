@@ -12,6 +12,7 @@ export const dummyDeposit = {
           symbol: "USDC",
           name: "USD Coin",
           icon: "usdc.webp",
+          decimals: 6,
           address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
           out: {
             symbol: "scUSD",
@@ -24,6 +25,7 @@ export const dummyDeposit = {
           symbol: "USDT",
           name: "USD Tether",
           icon: "usdt.webp",
+          decimals: 6,
           address: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
           out: {
             symbol: "scUSD",
@@ -36,6 +38,7 @@ export const dummyDeposit = {
           symbol: "ETH",
           name: "Ethereum",
           icon: "eth.webp",
+          decimals: 18,
           address: undefined,
           out: {
             symbol: "scETH",
@@ -53,10 +56,11 @@ export const dummyDeposit = {
       icon: "sonic.webp",
       assets: [
         {
-          symbol: "USDC",
+          symbol: "USDC.e",
           name: "USD Circle",
           icon: "usdc.webp",
-          address: "0x29219dd400f2Bf60E5a23d13Be72B486D4038894",
+          decimals: 6,
+          address: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
           out: {
             symbol: "scUSD",
             name: "Sonic USD",
@@ -68,6 +72,7 @@ export const dummyDeposit = {
           symbol: "wBTC",
           name: "Wrapped Bitcoin",
           icon: "wbtc.webp",
+          decimals: 8,
           address: "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
           out: {
             symbol: "scUSD",

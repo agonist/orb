@@ -1,13 +1,12 @@
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { ChainSelector } from "../selector/chain-selector";
 import { AssetSelector } from "../selector/asset-selector";
-import { assetsList } from "@/dummy";
-import { chainsList } from "@/dummy";
 import { useState } from "react";
 import type { Asset, Chain } from "@/types";
 import { SelectBtn } from "../selector/select-btn";
 
 type Props = {
+  chainsList: Chain[];
   selectedChain: Chain;
   setSelectedChain: (chain: Chain) => void;
   selectedAsset: Asset;
@@ -15,6 +14,7 @@ type Props = {
 };
 
 export const TokenSelectDialog = ({
+  chainsList,
   selectedChain,
   setSelectedChain,
   selectedAsset,
@@ -31,8 +31,9 @@ export const TokenSelectDialog = ({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger>
         <SelectBtn
-          selectedAsset={selectedAsset}
-          selectedChain={selectedChain}
+          assetIcon={selectedAsset.icon}
+          assetSymbol={selectedAsset.symbol}
+          chainName={selectedChain.name}
         />
       </DialogTrigger>
       <DialogContent className="flex p-0 md:min-w-2xl h-2/3">
@@ -43,7 +44,7 @@ export const TokenSelectDialog = ({
         />
 
         <AssetSelector
-          assets={assetsList[selectedChain.name]}
+          assets={selectedChain.assets}
           selectedAsset={selectedAsset}
           setSelectedAsset={onAssetSelect}
         />

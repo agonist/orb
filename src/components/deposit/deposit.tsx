@@ -1,37 +1,49 @@
-import { useMemo, useState } from "react";
 import { NumberInput } from "../ui/number-input";
 import { TokenSelectDialog } from "./token-select-dialog";
 import { SelectBtn } from "../selector/select-btn";
 import { ArrowDown } from "lucide-react";
 import { Button } from "../ui/button";
 import { useDeposit } from "@/hooks/use-deposit";
+import { CustomConnectButton } from "../custom-wallet-connect";
+import { BalanceLabel } from "../balance-label";
 
 export const Deposit = () => {
-  const { input, output } = useDeposit();
+  const { input, output, depositBtn, chainsList, tokensBalance, inBalance } =
+    useDeposit();
 
   return (
-    <div className="bg-card w-lg h-1/2 rounded-md border p-4 flex flex-col gap-8 items-start">
+    <div className="bg-card w-lg  rounded-md border p-4 flex flex-col  items-start">
       <h1 className="text-xl font-semibold">Deposit</h1>
 
-      <div className="flex w-full">
-        <NumberInput
-          className="rounded-r-none"
-          type="text"
-          placeholder="0"
-          label="Deposit"
-          bottomLabel={input.inUsd}
-          value={input.inValue}
-          onChange={(e) => input.handleInChange(e.target.value)}
-        />
-        <TokenSelectDialog
-          selectedChain={input.selectedChain}
-          setSelectedChain={input.setSelectedChain}
-          selectedAsset={input.selectedAsset}
-          setSelectedAsset={input.setSelectedAsset}
+      <div className="flex flex-col w-full mt-6">
+        <div className="flex w-full">
+          <NumberInput
+            className="rounded-r-none"
+            type="text"
+            placeholder="0"
+            label="Deposit"
+            bottomLabel={input.inUsd}
+            value={input.inValue}
+            onChange={(e) => input.handleInChange(e.target.value)}
+          />
+          <TokenSelectDialog
+            chainsList={chainsList}
+            selectedChain={input.selectedChain}
+            setSelectedChain={input.setSelectedChain}
+            selectedAsset={input.selectedAsset}
+            setSelectedAsset={input.setSelectedAsset}
+          />
+        </div>
+        <BalanceLabel
+          value={inBalance}
+          onValueClicked={() => {
+            input.handleInChange(inBalance);
+          }}
         />
       </div>
-      <ArrowDown className="size-8 w-full" />
-      <div className="flex w-full">
+
+      <ArrowDown className="size-8 w-full text-muted-foreground" />
+      <div className="flex w-full mt-6">
         <NumberInput
           className="rounded-r-none"
           readOnly
@@ -43,14 +55,21 @@ export const Deposit = () => {
           onChange={(e) => input.handleInChange(e.target.value)}
         />
         <SelectBtn
-          selectedAsset={input.selectedAsset}
-          selectedChain={input.selectedChain}
+          assetIcon={input.selectedAsset.out.icon}
+          assetSymbol={input.selectedAsset.out.symbol}
+          chainName={input.selectedChain.name}
           readOnly
         />
       </div>
-      <Button className="w-full" variant={"outline"}>
-        Deposit
-      </Button>
+      <div className="flex w-full mt-6">
+        {depositBtn.isConnected ? (
+          <Button className="w-full bg-teal-500 hover:bg-teal-400 font-bold">
+            Deposit
+          </Button>
+        ) : (
+          <CustomConnectButton className="w-full " />
+        )}
+      </div>
     </div>
   );
 };

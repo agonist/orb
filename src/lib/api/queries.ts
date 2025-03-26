@@ -101,6 +101,10 @@ export async function getTokensPrice() {
       price: 1,
     },
     {
+      symbol: "USDC.e",
+      price: 1,
+    },
+    {
       symbol: "USDT",
       price: 1,
     },

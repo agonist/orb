@@ -11,11 +11,6 @@ export const useTokenBalances = (chains: Chain[]) => {
   const publicClients = usePublicClients(chainIds);
 
   useEffect(() => {
-    console.log(chains);
-    console.log(publicClients);
-  }, [chains, publicClients]);
-
-  useEffect(() => {
     const fetchBalance = async () => {
       if (!address) return;
 

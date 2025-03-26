@@ -64,8 +64,12 @@ export const Deposit = () => {
       </div>
       <div className="flex w-full mt-6">
         {depositBtn.isConnected ? (
-          <Button className="w-full bg-teal-500 hover:bg-teal-400 font-bold">
-            Deposit
+          <Button
+            disabled={depositBtn.isDisabled}
+            onClick={depositBtn.handleDeposit}
+            className="w-full bg-teal-500 hover:bg-teal-400 font-bold"
+          >
+            {depositBtn.btnText}
           </Button>
         ) : (
           <CustomConnectButton className="w-full " />

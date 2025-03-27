@@ -6,6 +6,7 @@ import { useDepositApproval } from "./use-deposit-approval";
 import { useDepositInput } from "./use-deposit-input";
 import { useDepositTransaction } from "./use-deposit-tx";
 import { useTokenBalances } from "./use-tokens-balance";
+import { formatUnits, parseUnits } from "viem";
 
 export function useDeposit() {
   const { isConnected } = useAccount();
@@ -16,11 +17,17 @@ export function useDeposit() {
 
   const approval = useDepositApproval(input.selectedAsset, input.inValue);
 
+  const onDepositSuccess = () => {
+    approval.refetchAllowance();
+    tokensBalance.refetchBalance();
+  };
+
   const transaction = useDepositTransaction(
     input.selectedAsset,
     input.inValue,
     approval.isApprovalNeeded,
-    approval.allowance
+    approval.allowance,
+    onDepositSuccess
   );
 
   const handleDeposit = () => {
@@ -36,7 +43,15 @@ export function useDeposit() {
     let isDisabled = !isConnected || !input.inValue || input.inValue === "0";
     let isLoading = false;
 
-    if (approval.isApprovalNeeded) {
+    const inBalance =
+      tokensBalance.balances.find(
+        (t) => t.symbol === input.selectedAsset.symbol
+      )?.balance ?? "0";
+
+    if (Number(inBalance) < Number(input.inValue)) {
+      isDisabled = true;
+      btnText = "Insufficient balance";
+    } else if (approval.isApprovalNeeded) {
       btnText = approval.isApprovePending ? "Approving" : "Approve";
       isDisabled = false;
       isLoading = approval.isApprovePending;
@@ -67,10 +82,11 @@ export function useDeposit() {
 
   const inBalance = useMemo(() => {
     return (
-      tokensBalance.find((t) => t.symbol === input.selectedAsset.symbol)
-        ?.balance ?? "0"
+      tokensBalance.balances.find(
+        (t) => t.symbol === input.selectedAsset.symbol
+      )?.balance ?? "0"
     );
-  }, [tokensBalance, input.selectedAsset]);
+  }, [tokensBalance.balances, input.selectedAsset]);
 
   return {
     input,

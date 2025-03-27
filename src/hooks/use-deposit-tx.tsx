@@ -1,13 +1,20 @@
-import { useSimulateContract, useWriteContract } from "wagmi";
+import {
+  useSimulateContract,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from "wagmi";
 import { parseUnits } from "viem";
 import { TellerAbi } from "@/abi/teller";
 import type { Asset } from "@/types";
+import toast from "react-hot-toast";
+import { useEffect } from "react";
 
 export function useDepositTransaction(
   selectedAsset: Asset,
   inValue: string,
   isApprovalNeeded: boolean,
   allowance: bigint | undefined,
+  onDepositSuccess: () => void
 ) {
   const { data: depositConfig, error: depositError } = useSimulateContract({
     address: "0x358CFACf00d0B4634849821BB3d1965b472c776a" as `0x${string}`,
@@ -27,13 +34,27 @@ export function useDepositTransaction(
     },
   });
 
-  const { writeContract: deposit, isPending: isDepositPending } = useWriteContract({
+  const {
+    writeContractAsync: deposit,
+    data: depositResult,
+    isPending: isDepositPending,
+  } = useWriteContract({
     mutation: {
       onSuccess: () => {
-        // Handle success
+        toast.success("Deposit successful");
       },
     },
   });
+
+  const { isSuccess } = useWaitForTransactionReceipt({
+    hash: depositResult ? depositResult : undefined,
+  });
+
+  useEffect(() => {
+    if (isSuccess) {
+      onDepositSuccess();
+    }
+  }, [isSuccess]);
 
   return {
     depositConfig,

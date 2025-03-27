@@ -32,7 +32,7 @@ export const Deposit = () => {
             setSelectedChain={input.setSelectedChain}
             selectedAsset={input.selectedAsset}
             setSelectedAsset={input.setSelectedAsset}
-            balances={tokensBalance}
+            balances={tokensBalance.balances}
           />
         </div>
         <BalanceLabel
@@ -48,6 +48,7 @@ export const Deposit = () => {
         <NumberInput
           className="rounded-r-none"
           readOnly
+
           type="text"
           placeholder="0"
           label="You receive"

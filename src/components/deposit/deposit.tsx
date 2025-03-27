@@ -1,14 +1,14 @@
 import { NumberInput } from "../ui/number-input";
 import { TokenSelectDialog } from "./token-select-dialog";
 import { SelectBtn } from "../selector/select-btn";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { useDeposit } from "@/hooks/use-deposit";
 import { CustomConnectButton } from "../custom-wallet-connect";
 import { BalanceLabel } from "../balance-label";
 
 export const Deposit = () => {
-  const { input, output, depositBtn, chainsList, tokensBalance, inBalance } =
+  const { input, depositBtn, chainsList, tokensBalance, inBalance } =
     useDeposit();
 
   return (
@@ -51,8 +51,8 @@ export const Deposit = () => {
           type="text"
           placeholder="0"
           label="You receive"
-          bottomLabel={output.outUsd}
-          value={output.outNative}
+          bottomLabel={input.output.outUsd}
+          value={input.output.outNative}
           onChange={(e) => input.handleInChange(e.target.value)}
         />
         <SelectBtn
@@ -69,7 +69,11 @@ export const Deposit = () => {
             onClick={depositBtn.handleDeposit}
             className="w-full bg-teal-500 hover:bg-teal-400 font-bold"
           >
-            {depositBtn.btnText}
+            {depositBtn.isLoading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              depositBtn.btnText
+            )}
           </Button>
         ) : (
           <CustomConnectButton className="w-full " />

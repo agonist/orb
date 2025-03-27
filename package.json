@@ -22,6 +22,7 @@
     "connectkit": "^1.8.2",
     "jotai": "^2.12.2",
     "lucide-react": "^0.476.0",
+    "motion": "^12.6.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.2",

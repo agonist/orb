@@ -1,19 +1,28 @@
 import { NumberInput } from "../ui/number-input";
 import { TokenSelectDialog } from "./token-select-dialog";
 import { SelectBtn } from "../selector/select-btn";
-import { ArrowDown, Loader2 } from "lucide-react";
+import { ArrowDown, HelpCircle, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { useDeposit } from "@/hooks/use-deposit";
 import { CustomConnectButton } from "../custom-wallet-connect";
 import { BalanceLabel } from "../balance-label";
 
-export const Deposit = () => {
+type Props = {
+  onHelpClick: () => void;
+}
+
+export const Deposit = ({ onHelpClick }: Props) => {
   const { input, depositBtn, chainsList, tokensBalance, inBalance } =
     useDeposit();
 
   return (
     <div className="bg-card w-lg  rounded-md border p-4 flex flex-col  items-start">
-      <h1 className="text-xl font-semibold">Deposit</h1>
+      <div className="flex w-full">
+        <h1 className="text-xl font-semibold grow">Deposit</h1>
+        <Button variant={"ghost"} size={"icon"} onClick={onHelpClick}>
+          <HelpCircle />
+        </Button>
+      </div>
 
       <div className="flex flex-col w-full mt-6">
         <div className="flex w-full">
@@ -48,7 +57,6 @@ export const Deposit = () => {
         <NumberInput
           className="rounded-r-none"
           readOnly
-
           type="text"
           placeholder="0"
           label="You receive"

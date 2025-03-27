@@ -6,8 +6,8 @@ import { useDepositApproval } from "./use-deposit-approval";
 import { useDepositInput } from "./use-deposit-input";
 import { useDepositTransaction } from "./use-deposit-tx";
 import { useTokenBalances } from "./use-tokens-balance";
-import { formatUnits, parseUnits } from "viem";
 
+// Main hook for deposit logic
 export function useDeposit() {
   const { isConnected } = useAccount();
   const { data: deposit } = useSuspenseQuery(getDepositOptions());
@@ -38,6 +38,7 @@ export function useDeposit() {
     }
   };
 
+  // Get the deposit button text and status
   const depositBtn = useMemo(() => {
     let btnText = "Deposit";
     let isDisabled = !isConnected || !input.inValue || input.inValue === "0";
@@ -80,6 +81,7 @@ export function useDeposit() {
     handleDeposit,
   ]);
 
+  // Get the balance of the selected asset
   const inBalance = useMemo(() => {
     return (
       tokensBalance.balances.find(

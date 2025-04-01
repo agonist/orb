@@ -23,7 +23,7 @@ export const DesktopNav = () => {
                 key={item.name}
                 className={cn("text-sm")}
                 to={item.path}
-                activeProps={{ className: "text-purple-300" }}
+                activeProps={{ className: "text-teal-300" }}
               >
                 {item.name}
               </Link>

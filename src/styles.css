@@ -55,7 +55,7 @@ code {
 }
 
 .dark {
-  --background: rgb(12 12 12);
+  --background: #000201;
   --foreground: #E0E0E0;
   --card: rgb(22,22,22);
   --card-foreground: oklch(0.985 0 0);

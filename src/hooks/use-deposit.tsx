@@ -6,7 +6,7 @@ import { useDepositApproval } from "./use-deposit-approval";
 import { useDepositInput } from "./use-deposit-input";
 import { useDepositTransaction } from "./use-deposit-tx";
 import { useTokenBalances } from "./use-tokens-balance";
-
+import { useWatchChain } from "./use-switch-chain";
 // Main hook for deposit logic
 export function useDeposit() {
   const { isConnected } = useAccount();
@@ -14,6 +14,8 @@ export function useDeposit() {
   const tokensBalance = useTokenBalances(deposit.chains);
 
   const input = useDepositInput(deposit.chains[1], deposit.chains[1].assets[0]);
+
+  useWatchChain(input.selectedChain);
 
   const approval = useDepositApproval(input.selectedAsset, input.inValue);
 

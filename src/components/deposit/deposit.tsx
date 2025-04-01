@@ -9,14 +9,14 @@ import { BalanceLabel } from "../balance-label";
 
 type Props = {
   onHelpClick: () => void;
-}
+};
 
 export const Deposit = ({ onHelpClick }: Props) => {
   const { input, depositBtn, chainsList, tokensBalance, inBalance } =
     useDeposit();
 
   return (
-    <div className="bg-card w-lg  rounded-md border p-4 flex flex-col  items-start">
+    <div className="bg-card w-lg rounded-md border p-4 flex flex-col  items-start">
       <div className="flex w-full">
         <h1 className="text-xl font-semibold grow">Deposit</h1>
         <Button variant={"ghost"} size={"icon"} onClick={onHelpClick}>
@@ -76,7 +76,7 @@ export const Deposit = ({ onHelpClick }: Props) => {
           <Button
             disabled={depositBtn.isDisabled}
             onClick={depositBtn.handleDeposit}
-            className="w-full bg-teal-500 hover:bg-teal-400 font-bold"
+            className="w-full bg-teal-500 hover:bg-teal-400 font-bold shadow-[0_0_10px_rgba(13,148,136,0.7),0_0_20px_rgba(13,148,136,0.5)] hover:shadow-[0_0_15px_rgba(13,148,136,0.9),0_0_25px_rgba(13,148,136,0.6)] hover:cursor-pointer"
           >
             {depositBtn.isLoading ? (
               <Loader2 className="size-4 animate-spin" />

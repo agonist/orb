@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Deposit } from "@/components/deposit/deposit";
 
 export const Route = createFileRoute("/")({
   component: App,
@@ -7,8 +6,6 @@ export const Route = createFileRoute("/")({
 
 function App() {
   return (
-    <div className="text-center flex justify-center items-center h-screen">
-      <Deposit />
-    </div>
+    <div className="text-center flex justify-center items-center h-screen"></div>
   );
 }

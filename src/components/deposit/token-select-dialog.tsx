@@ -23,9 +23,11 @@ export const TokenSelectDialog = ({
   balances,
 }: Props) => {
   const [open, setOpen] = useState(false);
+  const [uiSelectedChain, setUiSelectedChain] = useState(selectedChain);
 
   const onAssetSelect = (asset: Asset) => {
     setSelectedAsset(asset);
+    setSelectedChain(uiSelectedChain);
     setOpen(false);
   };
 
@@ -41,13 +43,13 @@ export const TokenSelectDialog = ({
       <DialogContent className="flex p-0 md:min-w-2xl h-2/3">
         <ChainSelector
           chainsList={chainsList}
-          selectedChain={selectedChain}
-          setSelectedChain={setSelectedChain}
+          selectedChain={uiSelectedChain}
+          setSelectedChain={setUiSelectedChain}
         />
 
         <AssetSelector
           balances={balances}
-          assets={selectedChain.assets}
+          assets={uiSelectedChain.assets}
           selectedAsset={selectedAsset}
           setSelectedAsset={onAssetSelect}
         />

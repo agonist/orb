@@ -38,7 +38,7 @@ export const AssetSelector = ({
           <Search size={16} strokeWidth={2} />
         </div>
       </div>
-      <div className="flex flex-col gap-3 w-full">
+      <div className="flex flex-col gap-3 w-full overflow-y-scroll">
         {assets.map((asset) => (
           <div
             onClick={() => setSelectedAsset(asset)}

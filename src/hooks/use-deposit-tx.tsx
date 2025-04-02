@@ -17,7 +17,7 @@ export function useDepositTransaction(
   onDepositSuccess: () => void
 ) {
   const { data: depositConfig, error: depositError } = useSimulateContract({
-    address: "0x358CFACf00d0B4634849821BB3d1965b472c776a" as `0x${string}`,
+    address: selectedAsset.out.tellerAddress as `0x${string}`,
     abi: TellerAbi,
     functionName: "deposit",
     args: [

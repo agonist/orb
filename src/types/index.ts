@@ -9,6 +9,7 @@ export type Asset = {
     name: string;
     icon: string;
     address: string;
+    tellerAddress: string;
   };
 };
 

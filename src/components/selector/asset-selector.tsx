@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 import { Input } from "../ui/input";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,11 +18,21 @@ export const AssetSelector = ({
   balances,
 }: AssetSelectorProps) => {
   const id = useId();
+  const [search, setSearch] = useState("");
 
   function findAndFormatBalance(symbol: string) {
     const balance = balances.find((b) => b.symbol === symbol)?.balance;
     return parseFloat(Number(balance).toFixed(6)).toString();
   }
+
+  const filteredAssets = assets.filter((asset) => {
+    const searchLower = search.toLowerCase();
+    return (
+      asset.name.toLowerCase().includes(searchLower) ||
+      asset.symbol.toLowerCase().includes(searchLower) ||
+      asset.address?.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
     <div className="p-4 w-full flex flex-col gap-4">
@@ -33,13 +43,15 @@ export const AssetSelector = ({
           className="peer pe-9 ps-9"
           placeholder="Search by name, symbol or address"
           type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
         <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-muted-foreground/80 peer-disabled:opacity-50">
           <Search size={16} strokeWidth={2} />
         </div>
       </div>
       <div className="flex flex-col gap-3 w-full overflow-y-scroll">
-        {assets.map((asset) => (
+        {filteredAssets.map((asset) => (
           <div
             onClick={() => setSelectedAsset(asset)}
             className={cn(

@@ -1,9 +1,17 @@
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { ChainSelector } from "../selector/chain-selector";
 import { AssetSelector } from "../selector/asset-selector";
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Asset, Chain, TokenBalance } from "@/types";
 import { SelectBtn } from "../selector/select-btn";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { getFlyTokens } from "@/lib/api/fly-api";
 
 type Props = {
   chainsList: Chain[];
@@ -24,6 +32,7 @@ export const TokenSelectDialog = ({
 }: Props) => {
   const [open, setOpen] = useState(false);
   const [uiSelectedChain, setUiSelectedChain] = useState(selectedChain);
+  const [search, setSearch] = useState("");
 
   const onAssetSelect = (asset: Asset) => {
     setSelectedAsset(asset);
@@ -31,16 +40,79 @@ export const TokenSelectDialog = ({
     setOpen(false);
   };
 
+  // Infinite tokens for the currently highlighted chain
+  const {
+    data: tokenPages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+  } = useInfiniteQuery<any[]>({
+    queryKey: ["fly-tokens-infinite", uiSelectedChain?.name, search],
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: any[] | undefined, allPages: any[][]) => {
+      // If the API returns less than a page (assume 20), we stop
+      const pageSize = 20;
+      if (!lastPage || lastPage.length < pageSize) return undefined;
+      return allPages.reduce((acc, page) => acc + (page?.length ?? 0), 0);
+    },
+    queryFn: async ({ pageParam = 0 }) => {
+      return await getFlyTokens(
+        uiSelectedChain?.name.toLowerCase(),
+        pageParam as number,
+        search || undefined
+      );
+    },
+    enabled: Boolean(uiSelectedChain?.name),
+  });
+
+  const allFetchedTokens = useMemo(() => {
+    const flat = (tokenPages?.pages ?? []).flat();
+    return flat as any[];
+  }, [tokenPages]);
+
+  // Map fetched tokens to Asset type for the existing selector component
+  const fetchedAssets: Asset[] = useMemo(() => {
+    return allFetchedTokens.map((t: any) => ({
+      symbol: t.symbol,
+      name: t.name,
+      icon: t.logoUrl || t.icon,
+      decimals: t.decimals,
+      address: t.isNative ? undefined : t.address,
+      out: {
+        symbol: t.symbol,
+        name: t.name,
+        icon: t.logoUrl || t.icon,
+        address: t.address,
+        tellerAddress: t.address,
+      },
+    }));
+  }, [allFetchedTokens]);
+
+  // Reset pagination when chain changes
+  const prevChainName = useRef<string | undefined>(uiSelectedChain?.name);
+  if (prevChainName.current !== uiSelectedChain?.name) {
+    prevChainName.current = uiSelectedChain?.name;
+    // Reset by refetching the first page and letting infiniteQuery rebuild pages
+    // Explicitly provide pageParam to satisfy types
+    // Refetch with options to satisfy type signature
+    refetch({ throwOnError: false });
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>
+      <DialogTrigger asChild>
         <SelectBtn
           assetIcon={selectedAsset.icon}
           assetSymbol={selectedAsset.symbol}
           chainName={selectedChain.name}
         />
       </DialogTrigger>
-      <DialogContent className="flex p-0 md:min-w-2xl h-2/3">
+      <DialogContent className="flex p-0 min-w-7xl max-w-7xl w-full max-h-[80vh] h-[600px] overflow-hidden">
+        <DialogTitle className="sr-only">Select chain and asset</DialogTitle>
+        <DialogDescription className="sr-only">
+          Choose a chain on the left and a token on the right
+        </DialogDescription>
         <ChainSelector
           chainsList={chainsList}
           selectedChain={uiSelectedChain}
@@ -49,9 +121,19 @@ export const TokenSelectDialog = ({
 
         <AssetSelector
           balances={balances}
-          assets={uiSelectedChain.assets}
+          assets={
+            fetchedAssets.length > 0 ? fetchedAssets : uiSelectedChain.assets
+          }
           selectedAsset={selectedAsset}
           setSelectedAsset={onAssetSelect}
+          onReachEnd={() => {
+            if (hasNextPage && !isFetchingNextPage) {
+              fetchNextPage();
+            }
+          }}
+          isFetchingMore={isFetchingNextPage}
+          onSearchChange={setSearch}
+          searchQuery={search}
         />
       </DialogContent>
     </Dialog>

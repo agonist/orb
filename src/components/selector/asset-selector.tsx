@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import { Input } from "../ui/input";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TokenIcon } from "../ui/token-icon";
 import type { Asset, TokenBalance } from "@/types";
 
 interface AssetSelectorProps {
@@ -9,6 +10,10 @@ interface AssetSelectorProps {
   selectedAsset: Asset;
   setSelectedAsset: (asset: Asset) => void;
   balances: TokenBalance[];
+  onReachEnd?: () => void;
+  isFetchingMore?: boolean;
+  onSearchChange?: (value: string) => void;
+  searchQuery?: string;
 }
 
 export const AssetSelector = ({
@@ -16,16 +21,20 @@ export const AssetSelector = ({
   selectedAsset,
   setSelectedAsset,
   balances,
+  onReachEnd,
+  isFetchingMore,
+  onSearchChange,
+  searchQuery,
 }: AssetSelectorProps) => {
   const id = useId();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchQuery ?? "");
 
   function findAndFormatBalance(symbol: string) {
     const balance = balances.find((b) => b.symbol === symbol)?.balance;
     return parseFloat(Number(balance).toFixed(6)).toString();
   }
 
-  const filteredAssets = assets.filter((asset) => {
+  const filteredAssets = (assets || []).filter((asset) => {
     const searchLower = search.toLowerCase();
     return (
       asset.name.toLowerCase().includes(searchLower) ||
@@ -35,49 +44,75 @@ export const AssetSelector = ({
   });
 
   return (
-    <div className="p-4 w-full flex flex-col gap-4">
-      <span className="text-lg font-semibold">Assets</span>
-      <div className="relative">
-        <Input
-          id={id}
-          className="peer pe-9 ps-9"
-          placeholder="Search by name, symbol or address"
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-muted-foreground/80 peer-disabled:opacity-50">
-          <Search size={16} strokeWidth={2} />
+    <div className="flex-1 flex flex-col h-full">
+      <div className="p-4 border-b">
+        <span className="text-lg font-semibold">Assets</span>
+      </div>
+      <div className="p-4">
+        <div className="relative">
+          <Input
+            id={id}
+            className="peer pe-9 ps-9"
+            placeholder="Search by name, symbol or address"
+            type="search"
+            value={search}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSearch(val);
+              onSearchChange?.(val);
+            }}
+          />
+          <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-muted-foreground/80 peer-disabled:opacity-50">
+            <Search size={16} strokeWidth={2} />
+          </div>
         </div>
       </div>
-      <div className="flex flex-col gap-3 w-full overflow-y-scroll">
+      <div
+        className="flex flex-col gap-2 px-4 pb-4 overflow-y-auto flex-1"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          if (
+            onReachEnd &&
+            el.scrollTop + el.clientHeight >= el.scrollHeight - 16
+          ) {
+            onReachEnd();
+          }
+        }}
+      >
         {filteredAssets.map((asset) => (
           <div
             onClick={() => setSelectedAsset(asset)}
             className={cn(
-              "w-full flex gap-2 items-center p-2 border border-transparent rounded-sm hover:cursor-pointer text-foreground/80",
+              "w-full flex gap-3 items-center p-3 border rounded-md hover:cursor-pointer text-foreground/80 transition-all",
               selectedAsset.symbol === asset.symbol
-                ? "bg-input/60 border-border text-foreground"
-                : "hover:bg-input/20 hover:border-border/40"
+                ? "bg-primary/10 border-primary/50 text-foreground"
+                : "border-transparent hover:bg-muted hover:border-border"
             )}
-            key={asset.symbol}
+            key={`${asset.symbol}-${asset.address ?? "native"}`}
           >
-            <img
-              src={`/icons/${asset.icon}`}
+            <TokenIcon
+              src={asset.icon}
               alt={asset.name}
-              className="size-8"
+              className="w-10 h-10"
             />
-            <div className="flex flex-col w-full">
-              <span className="text-sm font-semibold">{asset.symbol}</span>
-              <div className="flex gap-1 w-full">
-                <span className="text-xs grow">{asset.name}</span>
-                <span className="text-xs">
+            <div className="flex flex-col flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold">{asset.symbol}</span>
+                <span className="text-sm font-medium">
                   {findAndFormatBalance(asset.symbol)}
                 </span>
               </div>
+              <span className="text-xs text-muted-foreground truncate">
+                {asset.name}
+              </span>
             </div>
           </div>
         ))}
+        {isFetchingMore && (
+          <div className="py-3 text-center text-sm text-muted-foreground">
+            Loading more...
+          </div>
+        )}
       </div>
     </div>
   );

@@ -29,6 +29,7 @@ export const Swap = ({ onSettingsClick }: Props) => {
     fromTokenPriceUsd,
     toTokenPriceUsd,
     outUsdDeltaPercent,
+    distributions,
     reverseSwap,
     isLoadingQuote,
   } = useSwap();

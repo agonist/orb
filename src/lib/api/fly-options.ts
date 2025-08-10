@@ -5,6 +5,10 @@ import {
   getFlyQuote,
   getFlySwapStatus,
   type FlyQuoteRequest,
+  getFlyBalances,
+  type FlyBalanceRequest,
+  getFlyDistributions,
+  getFlyAllowance,
 } from "./fly-api";
 
 // Query options for Fly protocol API calls
@@ -70,5 +74,47 @@ export function getFlySwapStatusOptions(swapId: string) {
       return 2000; // Poll every 2 seconds
     },
     enabled: Boolean(swapId),
+  });
+}
+
+export function getFlyBalancesOptions(params: FlyBalanceRequest) {
+  return queryOptions({
+    queryKey: ["fly-balances", params],
+    queryFn: () => getFlyBalances(params),
+    staleTime: 1000 * 30,
+    gcTime: 1000 * 60 * 5,
+    enabled: Boolean(
+      params.walletAddresses?.length && params.networkNames?.length
+    ),
+  });
+}
+
+export function getFlyDistributionsOptions(quoteId?: string) {
+  return queryOptions({
+    queryKey: ["fly-distributions", quoteId],
+    queryFn: () => getFlyDistributions(quoteId as string),
+    enabled: Boolean(quoteId),
+    staleTime: 0,
+    gcTime: 1000 * 60,
+  });
+}
+
+export function getFlyAllowanceOptions(params: {
+  networkName?: string;
+  walletAddress?: string;
+  tokenAddress?: string;
+  spenderAddress?: string;
+}) {
+  return queryOptions({
+    queryKey: ["fly-allowance", params],
+    queryFn: () => getFlyAllowance(params as any),
+    enabled: Boolean(
+      params.networkName &&
+        params.walletAddress &&
+        params.tokenAddress &&
+        params.spenderAddress
+    ),
+    staleTime: 0,
+    gcTime: 1000 * 60,
   });
 }

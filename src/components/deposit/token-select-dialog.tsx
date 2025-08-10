@@ -131,6 +131,7 @@ export const TokenSelectDialog = ({
           }
           selectedAsset={selectedAsset}
           setSelectedAsset={onAssetSelect}
+          chainId={uiSelectedChain.chainId}
           onReachEnd={() => {
             if (hasNextPage && !isFetchingNextPage) {
               fetchNextPage();

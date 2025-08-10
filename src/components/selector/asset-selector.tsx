@@ -10,6 +10,7 @@ interface AssetSelectorProps {
   selectedAsset: Asset;
   setSelectedAsset: (asset: Asset) => void;
   balances: TokenBalance[];
+  chainId?: number;
   onReachEnd?: () => void;
   isFetchingMore?: boolean;
   onSearchChange?: (value: string) => void;
@@ -21,6 +22,7 @@ export const AssetSelector = ({
   selectedAsset,
   setSelectedAsset,
   balances,
+  chainId,
   onReachEnd,
   isFetchingMore,
   onSearchChange,
@@ -29,19 +31,57 @@ export const AssetSelector = ({
   const id = useId();
   const [search, setSearch] = useState(searchQuery ?? "");
 
-  function findAndFormatBalance(symbol: string) {
-    const balance = balances.find((b) => b.symbol === symbol)?.balance;
-    return parseFloat(Number(balance).toFixed(6)).toString();
+  function getBalanceNum(symbol: string) {
+    const raw = balances.find(
+      (b) => b.symbol === symbol && (chainId == null || b.chainId === chainId)
+    )?.balance;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : 0;
   }
 
-  const filteredAssets = (assets || []).filter((asset) => {
-    const searchLower = search.toLowerCase();
-    return (
-      asset.name.toLowerCase().includes(searchLower) ||
-      asset.symbol.toLowerCase().includes(searchLower) ||
-      asset.address?.toLowerCase().includes(searchLower)
-    );
-  });
+  function findAndFormatBalance(symbol: string) {
+    const n = getBalanceNum(symbol);
+    return n.toFixed(6).replace(/\.0+$/, ".0");
+  }
+
+  const filteredAssets = (assets || [])
+    .filter((asset) => {
+      const searchLower = search.toLowerCase();
+      return (
+        asset.name.toLowerCase().includes(searchLower) ||
+        asset.symbol.toLowerCase().includes(searchLower) ||
+        asset.address?.toLowerCase().includes(searchLower)
+      );
+    })
+    .sort((a, b) => {
+      const stableSet = new Set([
+        "usdc",
+        "usdc.e",
+        "usdt",
+        "dai",
+        "usds",
+        "gho",
+      ]);
+
+      const aBalance = getBalanceNum(a.symbol);
+      const bBalance = getBalanceNum(b.symbol);
+
+      const aHasBal = aBalance > 0 ? 1 : 0;
+      const bHasBal = bBalance > 0 ? 1 : 0;
+
+      if (aHasBal !== bHasBal) return bHasBal - aHasBal;
+
+      const aIsNative = !a.address ? 1 : 0;
+      const bIsNative = !b.address ? 1 : 0;
+      if (aIsNative !== bIsNative) return bIsNative - aIsNative;
+
+      const aIsStable = stableSet.has(a.symbol.toLowerCase()) ? 1 : 0;
+      const bIsStable = stableSet.has(b.symbol.toLowerCase()) ? 1 : 0;
+      if (aIsStable !== bIsStable) return bIsStable - aIsStable;
+
+      if (aBalance !== bBalance) return bBalance - aBalance;
+      return a.symbol.localeCompare(b.symbol);
+    });
 
   return (
     <div className="flex-1 flex flex-col h-full">

@@ -93,6 +93,31 @@ export interface FlySwapStatus {
   error?: string;
 }
 
+// Balances API
+export interface FlyBalanceRequest {
+  walletAddresses: (string | null)[];
+  networkNames: string[];
+  offset?: number;
+}
+
+export type FlyBalanceItem = any; // The API returns a rich object; we will normalize downstream
+
+// Distributions API (route breakdown)
+export interface FlyDistributionsResponse {
+  distributions: Array<{
+    amountIns: string[];
+    amountOuts: string[];
+    route: Array<{
+      id: string;
+      gas?: string;
+      pool?: { address?: string; amm?: { name?: string } };
+      token0?: { address?: string };
+      token1?: { address?: string };
+    }>;
+    data: any[];
+  }>;
+}
+
 // API Client Class
 class FlyApiClient {
   private baseUrl: string;
@@ -228,15 +253,10 @@ class FlyApiClient {
   }
 
   // Get transaction data for self-execution
-  async getTransaction(
-    quoteId: string,
-    isCrossNetwork: boolean
-  ): Promise<FlyTransactionResponse> {
-    const endpoint = isCrossNetwork
-      ? "/aggregator/transaction-in"
-      : "/aggregator/transaction";
+  async getTransaction(quoteId: string): Promise<FlyTransactionResponse> {
+    // Always use /aggregator/transaction per request
     return this.request<FlyTransactionResponse>(
-      `${endpoint}?quoteId=${quoteId}`
+      `/aggregator/transaction?quoteId=${quoteId}`
     );
   }
 
@@ -257,6 +277,40 @@ class FlyApiClient {
   // Get swap status
   async getSwapStatus(swapId: string): Promise<FlySwapStatus> {
     return this.request<FlySwapStatus>(`/user-manager/swap/${swapId}`);
+  }
+
+  // Get balances for wallets and networks
+  async getBalances(params: FlyBalanceRequest): Promise<FlyBalanceItem[]> {
+    return this.request<FlyBalanceItem[]>("/balance-manager/balances", {
+      method: "POST",
+      body: JSON.stringify({
+        walletAddresses: params.walletAddresses,
+        networkNames: params.networkNames,
+        offset: params.offset ?? 0,
+      }),
+    });
+  }
+
+  // Get route distributions for a quote
+  async getDistributions(quoteId: string): Promise<FlyDistributionsResponse> {
+    return this.request<FlyDistributionsResponse>(
+      `/aggregator/distributions?quoteId=${quoteId}`
+    );
+  }
+
+  // Get ERC-20 allowance for spender
+  async getAllowance(params: {
+    networkName: string;
+    walletAddress: string;
+    tokenAddress: string;
+    spenderAddress: string;
+  }): Promise<{ allowance: string }> {
+    const { networkName, walletAddress, tokenAddress, spenderAddress } = params;
+    return this.request<{ allowance: string }>(
+      `/balance-manager/allowance?networkName=${encodeURIComponent(
+        networkName
+      )}&walletAddress=${walletAddress}&tokenAddress=${tokenAddress}&spenderAddress=${spenderAddress}`
+    );
   }
 }
 
@@ -279,3 +333,16 @@ export const executeFlySwap = (
 ) => flyApi.executeSwap(params);
 export const getFlySwapStatus = (swapId: string) =>
   flyApi.getSwapStatus(swapId);
+
+// Balances
+export const getFlyBalances = (params: FlyBalanceRequest) =>
+  flyApi.getBalances(params);
+
+// Distributions
+export const getFlyDistributions = (quoteId: string) =>
+  flyApi.getDistributions(quoteId);
+
+// Allowance
+export const getFlyAllowance = (
+  params: Parameters<typeof flyApi.getAllowance>[0]
+) => flyApi.getAllowance(params);

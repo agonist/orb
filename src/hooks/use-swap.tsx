@@ -2,6 +2,8 @@ import { getSwapChainsOptions, getSwapTokensOptions } from "@/lib/api/options";
 import {
   getFlyQuoteOptions,
   getFlyTokenSearchOptions,
+  getFlyDistributionsOptions,
+  getFlyAllowanceOptions,
 } from "@/lib/api/fly-options";
 import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useMemo, useState, useCallback, useEffect } from "react";
@@ -311,6 +313,33 @@ export function useSwap() {
       : (disabledQuoteOptions as any)
   );
 
+  // Fetch distributions after quote arrives
+  const { data: distributions } = useQuery(
+    getFlyDistributionsOptions((quote as any)?.id)
+  );
+
+  // Check allowance for from-token on from network, spender = router/verifyingContract
+  const routerAddress =
+    (quote as any)?.typedData?.domain?.verifyingContract ||
+    (quote as any)?.targetAddress;
+  const { data: allowanceRes } = useQuery(
+    getFlyAllowanceOptions({
+      networkName: fromInput.selectedChain?.name?.toLowerCase(),
+      walletAddress: address,
+      tokenAddress: fromInput.selectedAsset?.address, // native doesn't need approval
+      spenderAddress: routerAddress,
+    })
+  );
+  const hasSufficientAllowance = useMemo(() => {
+    if (!fromInput.selectedAsset?.address) return true; // native
+    const amount = parseFloat(fromInput.value) || 0;
+    if (amount <= 0) return true;
+    const needed =
+      amount * Math.pow(10, fromInput.selectedAsset.decimals || 18);
+    const current = Number(allowanceRes?.allowance || 0);
+    return current >= needed;
+  }, [allowanceRes, fromInput.value, fromInput.selectedAsset]);
+
   // Update toInput value when quote changes (supports quote-in amountOut or quote toAmount)
   useEffect(() => {
     const rawOut = (quote as any)?.amountOut ?? (quote as any)?.toAmount;
@@ -397,6 +426,7 @@ export function useSwap() {
 
   const swapExecution = useSwapExecution({
     quote: quote as any, // Type cast for now since API returns different format
+    quoteRequest: quoteRequest as any,
     gasless,
     onSuccess: onSwapSuccess,
   });
@@ -456,6 +486,7 @@ export function useSwap() {
     fromInput.selectedAsset,
     tokensBalance.balances,
     quote,
+    distributions,
     isLoadingQuote,
     swapExecution,
     gasless,

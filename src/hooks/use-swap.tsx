@@ -46,9 +46,13 @@ export function useSwap() {
   // Fetch chains from Fly API
   const { data: swapChains } = useSuspenseQuery(getSwapChainsOptions());
 
-  // Initialize with first available chains
-  const initialFromChain = swapChains[0] || {};
+  // Initialize with preferred chains: From = Ethereum, To = Sonic (fallbacks if unavailable)
+  const initialFromChain =
+    swapChains.find((c) => c.name?.toLowerCase() === "ethereum") ||
+    swapChains[0] ||
+    {};
   const initialToChain =
+    swapChains.find((c) => c.name?.toLowerCase() === "sonic") ||
     swapChains.find((c) => c.chainId !== initialFromChain.chainId) ||
     swapChains[0] ||
     {};
@@ -87,6 +91,53 @@ export function useSwap() {
     return Array.from(map.values());
   }, [toTokensBase, toTokensSearch]);
 
+  // Always enforce output chain/token to Sonic + LSD
+  const sonicChain = useMemo(
+    () =>
+      swapChains.find((c) => c.name?.toLowerCase() === "sonic") ||
+      swapChains[0] ||
+      {},
+    [swapChains]
+  );
+
+  useEffect(() => {
+    // Force to-chain to Sonic if user somehow changes it
+    if (toInput.selectedChain?.name?.toLowerCase() !== "sonic" && sonicChain) {
+      toInput.setSelectedChain(sonicChain);
+    }
+  }, [toInput.selectedChain, sonicChain]);
+
+  // Fetch LSD token info explicitly on Sonic for robust defaults
+  const { data: lsdSearch = [] } = useQuery(
+    getFlyTokenSearchOptions("sonic", "LSD")
+  );
+
+  useEffect(() => {
+    // If no to-asset or it's not LSD, set LSD from search/base tokens
+    const currentSymbol = (toInput.selectedAsset?.symbol || "").toLowerCase();
+    const isLsd = currentSymbol === "lsd";
+    if (isLsd) return;
+
+    const all = [...(toTokens || []), ...(lsdSearch || [])];
+    const lsd = all.find((t: any) => (t.symbol || "").toLowerCase() === "lsd");
+    if (lsd) {
+      toInput.setSelectedAsset({
+        symbol: lsd.symbol,
+        name: lsd.name,
+        icon: lsd.icon,
+        decimals: lsd.decimals,
+        address: lsd.address,
+        out: {
+          symbol: lsd.symbol,
+          name: lsd.name,
+          icon: lsd.icon,
+          address: lsd.address,
+          tellerAddress: lsd.address,
+        },
+      });
+    }
+  }, [toTokens, lsdSearch, toInput.selectedAsset]);
+
   // Update selected assets when tokens are loaded
   useEffect(() => {
     if (fromTokens.length > 0 && !fromInput.selectedAsset?.symbol) {
@@ -110,19 +161,22 @@ export function useSwap() {
 
   useEffect(() => {
     if (toTokens.length > 0 && !toInput.selectedAsset?.symbol) {
-      const firstToken = toTokens[0];
+      const lsdToken =
+        toTokens.find((t: any) => t.symbol?.toLowerCase() === "lsd") ||
+        toTokens.find((t: any) => t.name?.toLowerCase().includes("lsd"));
+      const chosen = lsdToken || toTokens[0];
       toInput.setSelectedAsset({
-        symbol: firstToken.symbol,
-        name: firstToken.name,
-        icon: firstToken.icon,
-        decimals: firstToken.decimals,
-        address: firstToken.address,
+        symbol: chosen.symbol,
+        name: chosen.name,
+        icon: chosen.icon,
+        decimals: chosen.decimals,
+        address: chosen.address,
         out: {
-          symbol: firstToken.symbol,
-          name: firstToken.name,
-          icon: firstToken.icon,
-          address: firstToken.address,
-          tellerAddress: firstToken.address,
+          symbol: chosen.symbol,
+          name: chosen.name,
+          icon: chosen.icon,
+          address: chosen.address,
+          tellerAddress: chosen.address,
         },
       });
     }
@@ -298,6 +352,28 @@ export function useSwap() {
     return `$${(amount * price).toFixed(2)}`;
   }, [toInput.value, toInput.selectedAsset, toTokens]);
 
+  // Current unit prices (define before delta computation)
+  const fromTokenPriceUsd = useMemo(
+    () => findUsdPrice(fromTokens as any[], fromInput.selectedAsset),
+    [fromTokens, fromInput.selectedAsset]
+  );
+  const toTokenPriceUsd = useMemo(
+    () => findUsdPrice(toTokens as any[], toInput.selectedAsset),
+    [toTokens, toInput.selectedAsset]
+  );
+
+  // Out USD delta vs In USD (percentage)
+  const outUsdDeltaPercent = useMemo(() => {
+    const inAmount = parseFloat(fromInput.value) || 0;
+    const outAmount = parseFloat(toInput.value) || 0;
+    if (!inAmount || !outAmount) return null;
+    const inUsd = inAmount * (fromTokenPriceUsd || 0);
+    const outUsd = outAmount * (toTokenPriceUsd || 0);
+    if (inUsd <= 0 || outUsd <= 0) return null;
+    const delta = ((outUsd - inUsd) / inUsd) * 100;
+    return delta;
+  }, [fromInput.value, toInput.value, fromTokenPriceUsd, toTokenPriceUsd]);
+
   // Reverse swap function
   const reverseSwap = useCallback(() => {
     const tempChain = fromInput.selectedChain;
@@ -413,6 +489,9 @@ export function useSwap() {
     quote,
     fromUsdLabel,
     toUsdLabel,
+    fromTokenPriceUsd,
+    toTokenPriceUsd,
+    outUsdDeltaPercent,
     settings: {
       slippage,
       gasless,

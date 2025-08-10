@@ -5,7 +5,7 @@ import { useId } from "react";
 
 interface NumberInputProps extends React.ComponentProps<"input"> {
   label?: string;
-  bottomLabel?: string;
+  bottomLabel?: React.ReactNode;
   readOnly?: boolean;
 }
 

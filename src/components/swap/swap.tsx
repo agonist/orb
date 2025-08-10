@@ -26,6 +26,9 @@ export const Swap = ({ onSettingsClick }: Props) => {
     fromUsdLabel,
     toUsdLabel,
     settings,
+    fromTokenPriceUsd,
+    toTokenPriceUsd,
+    outUsdDeltaPercent,
     reverseSwap,
     isLoadingQuote,
   } = useSwap();
@@ -102,7 +105,20 @@ export const Swap = ({ onSettingsClick }: Props) => {
             type="text"
             placeholder="0"
             label="To"
-            bottomLabel={toUsdLabel}
+            bottomLabel={(() => {
+              if (outUsdDeltaPercent == null) return toUsdLabel;
+              const color =
+                outUsdDeltaPercent >= 0 ? "text-green-500" : "text-red-500";
+              return (
+                <span>
+                  {toUsdLabel}
+                  <span className={`ml-1 ${color}`}>
+                    ({outUsdDeltaPercent >= 0 ? "+" : ""}
+                    {outUsdDeltaPercent.toFixed(2)}%)
+                  </span>
+                </span>
+              );
+            })()}
             value={isLoadingQuote ? "..." : toInput.value}
             onChange={(e) =>
               toInput.handleChange && toInput.handleChange(e.target.value)
@@ -111,9 +127,13 @@ export const Swap = ({ onSettingsClick }: Props) => {
           <TokenSelectDialog
             chainsList={legacyChainsFormat}
             selectedChain={toInput.selectedChain}
-            setSelectedChain={toInput.setSelectedChain}
+            setSelectedChain={() => {
+              /* enforced to Sonic */
+            }}
             selectedAsset={toInput.selectedAsset}
-            setSelectedAsset={toInput.setSelectedAsset}
+            setSelectedAsset={() => {
+              /* enforced to LSD */
+            }}
             balances={tokensBalance.balances}
           />
         </div>
@@ -126,7 +146,14 @@ export const Swap = ({ onSettingsClick }: Props) => {
       </div>
 
       {/* Swap Route Display */}
-      {quote && <SwapRoute quote={quote as any} />}
+      {quote && (
+        <SwapRoute
+          quote={quote as any}
+          slippagePercent={settings.slippage}
+          fromTokenPriceUsd={fromTokenPriceUsd}
+          toTokenPriceUsd={toTokenPriceUsd}
+        />
+      )}
 
       {/* Swap Button */}
       <div className="flex w-full mt-6">

@@ -1,5 +1,8 @@
 import { getSwapChainsOptions, getSwapTokensOptions } from "@/lib/api/options";
-import { getFlyQuoteOptions } from "@/lib/api/fly-options";
+import {
+  getFlyQuoteOptions,
+  getFlyTokenSearchOptions,
+} from "@/lib/api/fly-options";
 import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useMemo, useState, useCallback, useEffect } from "react";
 import { useAccount } from "wagmi";
@@ -58,9 +61,31 @@ export function useSwap() {
   const { data: fromTokens = [] } = useQuery(
     getSwapTokensOptions(fromInput.selectedChain?.name)
   );
-  const { data: toTokens = [] } = useQuery(
+  const { data: toTokensBase = [] } = useQuery(
     getSwapTokensOptions(toInput.selectedChain?.name)
   );
+
+  // If the selected asset came from search (address may not be in base list), ensure we can fetch price by address
+  const { data: toTokensSearch = [] } = useQuery(
+    getFlyTokenSearchOptions(
+      toInput.selectedChain?.name?.toLowerCase(),
+      toInput.selectedAsset?.symbol || toInput.selectedAsset?.address
+    )
+  );
+
+  const toTokens = useMemo(() => {
+    // merge by address/symbol with priority to search results when present
+    const map = new Map<string, any>();
+    for (const t of toTokensBase) {
+      const key = (t.address || t.symbol).toLowerCase();
+      map.set(key, t);
+    }
+    for (const t of toTokensSearch) {
+      const key = (t.address || t.symbol).toLowerCase();
+      map.set(key, t);
+    }
+    return Array.from(map.values());
+  }, [toTokensBase, toTokensSearch]);
 
   // Update selected assets when tokens are loaded
   useEffect(() => {
@@ -119,7 +144,7 @@ export function useSwap() {
           name: token.name,
           icon: token.icon,
           decimals: token.decimals,
-          address: token.isNative ? undefined : token.address,
+          address: token.address,
           out: {
             symbol: token.symbol,
             name: token.name,
@@ -139,7 +164,7 @@ export function useSwap() {
           name: token.name,
           icon: token.icon,
           decimals: token.decimals,
-          address: token.isNative ? undefined : token.address,
+          address: token.address,
           out: {
             symbol: token.symbol,
             name: token.name,
@@ -170,7 +195,7 @@ export function useSwap() {
 
   // Swap settings
   const [slippage, setSlippage] = useState(0.5);
-  const [gasless, setGasless] = useState(true);
+  const [gasless, setGasless] = useState(false);
 
   useWatchChain(fromInput.selectedChain);
 
@@ -193,16 +218,21 @@ export function useSwap() {
       return null;
     }
 
+    // API expects slippage as decimal (e.g., 0.005 for 0.5%)
+    const slippageDecimal = slippage / 100;
     return {
+      fromNetwork: (fromInput.selectedChain?.name || "").toLowerCase(),
+      toNetwork: (toInput.selectedChain?.name || "").toLowerCase(),
       fromTokenAddress: fromInput.selectedAsset.address,
       toTokenAddress: toInput.selectedAsset.address,
-      amount: (
+      sellAmount: (
         parsedValue * Math.pow(10, fromInput.selectedAsset.decimals)
       ).toString(),
-      slippage,
+      slippageIn: slippageDecimal,
+      slippageOut: slippageDecimal,
+      gasless,
       fromAddress: address,
       toAddress: address,
-      gasless,
     };
   }, [
     address,
@@ -227,15 +257,46 @@ export function useSwap() {
       : (disabledQuoteOptions as any)
   );
 
-  // Update toInput value when quote changes
+  // Update toInput value when quote changes (supports quote-in amountOut or quote toAmount)
   useEffect(() => {
-    if (quote?.toAmount && toInput.selectedAsset.decimals) {
+    const rawOut = (quote as any)?.amountOut ?? (quote as any)?.toAmount;
+    if (rawOut && toInput.selectedAsset.decimals != null) {
       const toAmount =
-        parseFloat(quote.toAmount) /
-        Math.pow(10, toInput.selectedAsset.decimals);
+        parseFloat(rawOut) / Math.pow(10, toInput.selectedAsset.decimals);
       toInput.handleChange(toAmount.toString());
     }
   }, [quote, toInput.selectedAsset.decimals]);
+
+  // USD labels based on Fly token usdPrice
+  function findUsdPrice(tokens: any[], selected: any): number {
+    if (!tokens || tokens.length === 0 || !selected) return 0;
+    const selAddr = (selected.address || "").toLowerCase();
+    let token = selAddr
+      ? tokens.find((t: any) => (t.address || "").toLowerCase() === selAddr)
+      : undefined;
+    if (!token) {
+      const selSym = (selected.symbol || "").toLowerCase();
+      token = tokens.find(
+        (t: any) => (t.symbol || "").toLowerCase() === selSym
+      );
+    }
+    const price = parseFloat(token?.usdPrice ?? "0");
+    return isNaN(price) ? 0 : price;
+  }
+
+  const fromUsdLabel = useMemo(() => {
+    const amount = parseFloat(fromInput.value) || 0;
+    if (!amount) return "$0.00";
+    const price = findUsdPrice(fromTokens as any[], fromInput.selectedAsset);
+    return `$${(amount * price).toFixed(2)}`;
+  }, [fromInput.value, fromInput.selectedAsset, fromTokens]);
+
+  const toUsdLabel = useMemo(() => {
+    const amount = parseFloat(toInput.value) || 0;
+    if (!amount) return "$0.00";
+    const price = findUsdPrice(toTokens as any[], toInput.selectedAsset);
+    return `$${(amount * price).toFixed(2)}`;
+  }, [toInput.value, toInput.selectedAsset, toTokens]);
 
   // Reverse swap function
   const reverseSwap = useCallback(() => {
@@ -350,6 +411,8 @@ export function useSwap() {
     fromBalance,
     toBalance,
     quote,
+    fromUsdLabel,
+    toUsdLabel,
     settings: {
       slippage,
       gasless,

@@ -35,13 +35,16 @@ export interface FlyToken {
 }
 
 export interface FlyQuoteRequest {
+  fromNetwork: string; // e.g., 'ethereum'
+  toNetwork: string; // e.g., 'sonic'
   fromTokenAddress: string;
   toTokenAddress: string;
-  amount: string;
-  slippage: number;
-  fromAddress: string;
-  toAddress: string;
+  sellAmount: string;
+  slippageIn: number; // decimal (0.005 for 0.5%)
+  slippageOut: number; // decimal (0.005 for 0.5%)
   gasless: boolean;
+  fromAddress?: string;
+  toAddress?: string;
   affiliateAddress?: string;
   affiliateFeeInPercentage?: number;
 }
@@ -173,37 +176,67 @@ class FlyApiClient {
 
   // Get swap quote
   async getQuote(request: FlyQuoteRequest): Promise<FlyQuoteResponse> {
+    // Cross-network when networks differ; otherwise same-network
+    const isCross = request.fromNetwork !== request.toNetwork;
+
+    if (isCross) {
+      const params = new URLSearchParams({
+        fromNetwork: request.fromNetwork,
+        toNetwork: request.toNetwork,
+        fromTokenAddress: request.fromTokenAddress,
+        toTokenAddress: request.toTokenAddress,
+        sellAmount: request.sellAmount,
+        slippageIn: request.slippageIn.toString(),
+        slippageOut: request.slippageOut.toString(),
+        gasless: request.gasless.toString(),
+      });
+      if (request.fromAddress)
+        params.append("fromAddress", request.fromAddress);
+      if (request.toAddress) params.append("toAddress", request.toAddress);
+      if (request.affiliateAddress)
+        params.append("affiliateAddress", request.affiliateAddress);
+      if (request.affiliateFeeInPercentage)
+        params.append(
+          "affiliateFeeInPercentage",
+          request.affiliateFeeInPercentage.toString()
+        );
+      return this.request<FlyQuoteResponse>(
+        `/aggregator/quote-in?${params.toString()}`
+      );
+    }
+
     const params = new URLSearchParams({
+      network: request.fromNetwork,
       fromTokenAddress: request.fromTokenAddress,
       toTokenAddress: request.toTokenAddress,
-      amount: request.amount,
-      slippage: request.slippage.toString(),
-      fromAddress: request.fromAddress,
-      toAddress: request.toAddress,
+      sellAmount: request.sellAmount,
+      slippage: request.slippageIn.toString(),
       gasless: request.gasless.toString(),
     });
-
-    if (request.affiliateAddress) {
+    if (request.fromAddress) params.append("fromAddress", request.fromAddress);
+    if (request.toAddress) params.append("toAddress", request.toAddress);
+    if (request.affiliateAddress)
       params.append("affiliateAddress", request.affiliateAddress);
-    }
-    if (request.affiliateFeeInPercentage) {
+    if (request.affiliateFeeInPercentage)
       params.append(
         "affiliateFeeInPercentage",
         request.affiliateFeeInPercentage.toString()
       );
-    }
-
-    // Use correct endpoint based on gasless flag
-    const endpoint = request.gasless
-      ? "/aggregator/quote-in"
-      : "/aggregator/quote";
-    return this.request<FlyQuoteResponse>(`${endpoint}?${params.toString()}`);
+    return this.request<FlyQuoteResponse>(
+      `/aggregator/quote?${params.toString()}`
+    );
   }
 
   // Get transaction data for self-execution
-  async getTransaction(quoteId: string): Promise<FlyTransactionResponse> {
+  async getTransaction(
+    quoteId: string,
+    isCrossNetwork: boolean
+  ): Promise<FlyTransactionResponse> {
+    const endpoint = isCrossNetwork
+      ? "/aggregator/transaction-in"
+      : "/aggregator/transaction";
     return this.request<FlyTransactionResponse>(
-      `/aggregator/transaction-in?quoteId=${quoteId}`
+      `${endpoint}?quoteId=${quoteId}`
     );
   }
 

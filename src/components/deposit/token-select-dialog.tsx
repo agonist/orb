@@ -12,6 +12,7 @@ import type { Asset, Chain, TokenBalance } from "@/types";
 import { SelectBtn } from "../selector/select-btn";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getFlyTokens } from "@/lib/api/fly-api";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 type Props = {
   chainsList: Chain[];
@@ -33,6 +34,7 @@ export const TokenSelectDialog = ({
   const [open, setOpen] = useState(false);
   const [uiSelectedChain, setUiSelectedChain] = useState(selectedChain);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   const onAssetSelect = (asset: Asset) => {
     setSelectedAsset(asset);
@@ -48,7 +50,7 @@ export const TokenSelectDialog = ({
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery<any[]>({
-    queryKey: ["fly-tokens-infinite", uiSelectedChain?.name, search],
+    queryKey: ["fly-tokens-infinite", uiSelectedChain?.name, debouncedSearch],
     initialPageParam: 0,
     getNextPageParam: (lastPage: any[] | undefined, allPages: any[][]) => {
       // If the API returns less than a page (assume 20), we stop
@@ -60,10 +62,13 @@ export const TokenSelectDialog = ({
       return await getFlyTokens(
         uiSelectedChain?.name.toLowerCase(),
         pageParam as number,
-        search || undefined
+        debouncedSearch || undefined
       );
     },
     enabled: Boolean(uiSelectedChain?.name),
+    refetchOnMount: "always",
+    staleTime: 0,
+    retry: 0,
   });
 
   const allFetchedTokens = useMemo(() => {

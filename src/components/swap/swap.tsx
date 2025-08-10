@@ -14,18 +14,20 @@ type Props = {
 };
 
 export const Swap = ({ onSettingsClick }: Props) => {
-  const { 
-    fromInput, 
-    toInput, 
-    swapBtn, 
+  const {
+    fromInput,
+    toInput,
+    swapBtn,
     legacyChainsFormat,
-    tokensBalance, 
-    fromBalance, 
+    tokensBalance,
+    fromBalance,
     toBalance,
     quote,
+    fromUsdLabel,
+    toUsdLabel,
     settings,
     reverseSwap,
-    isLoadingQuote 
+    isLoadingQuote,
   } = useSwap();
 
   const [showSettings, setShowSettings] = useState(false);
@@ -34,9 +36,9 @@ export const Swap = ({ onSettingsClick }: Props) => {
     <div className="bg-card w-lg rounded-md border p-4 flex flex-col items-start">
       <div className="flex w-full">
         <h1 className="text-xl font-semibold grow">Swap</h1>
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setShowSettings(!showSettings)}
         >
           <Settings />
@@ -44,7 +46,7 @@ export const Swap = ({ onSettingsClick }: Props) => {
       </div>
 
       {showSettings && (
-        <SwapSettings 
+        <SwapSettings
           settings={settings}
           onClose={() => setShowSettings(false)}
         />
@@ -58,7 +60,7 @@ export const Swap = ({ onSettingsClick }: Props) => {
             type="text"
             placeholder="0"
             label="From"
-            bottomLabel={fromInput.inUsd}
+            bottomLabel={fromUsdLabel}
             value={fromInput.value}
             onChange={(e) => fromInput.handleChange(e.target.value)}
           />
@@ -100,9 +102,11 @@ export const Swap = ({ onSettingsClick }: Props) => {
             type="text"
             placeholder="0"
             label="To"
-            bottomLabel={toInput.outUsd}
+            bottomLabel={toUsdLabel}
             value={isLoadingQuote ? "..." : toInput.value}
-            onChange={(e) => toInput.handleChange && toInput.handleChange(e.target.value)}
+            onChange={(e) =>
+              toInput.handleChange && toInput.handleChange(e.target.value)
+            }
           />
           <TokenSelectDialog
             chainsList={legacyChainsFormat}

@@ -1,5 +1,9 @@
 import { useState, useCallback } from "react";
-import { useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useWaitForTransactionReceipt,
+  useSendTransaction,
+} from "wagmi";
 import { getFlyTransaction, executeFlySwap } from "@/lib/api/fly-api";
 import type { SwapQuote } from "@/types";
 
@@ -9,16 +13,23 @@ interface UseSwapExecutionProps {
   onSuccess?: () => void;
 }
 
-export function useSwapExecution({ quote, gasless, onSuccess }: UseSwapExecutionProps) {
+export function useSwapExecution({
+  quote,
+  gasless,
+  onSuccess,
+}: UseSwapExecutionProps) {
   const { address } = useAccount();
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionError, setExecutionError] = useState<string | null>(null);
   const [swapId, setSwapId] = useState<string | null>(null);
 
-  const { writeContract, isPending: isTransactionPending } = useWriteContract();
-  
+  const {
+    sendTransaction,
+    isPending: isTransactionPending,
+    data: txHash,
+  } = useSendTransaction();
   const { isLoading: isTransactionConfirming } = useWaitForTransactionReceipt({
-    hash: undefined, // We'll track this from the transaction
+    hash: txHash,
   });
 
   const executeSwap = useCallback(async () => {
@@ -34,13 +45,13 @@ export function useSwapExecution({ quote, gasless, onSuccess }: UseSwapExecution
       if (gasless) {
         // Execute gasless swap through Fly protocol
         console.log("Executing gasless swap...");
-        
+
         // For gasless swaps, we need to sign permit and swap signatures
         // This is a simplified implementation - in reality, you'd need to:
         // 1. Sign permit for token approval
         // 2. Sign swap transaction
         // 3. Send signatures to Fly protocol for execution
-        
+
         const swapResult = await executeFlySwap({
           networkName: "ethereum", // This should be derived from the quote
           quoteId: quote.id,
@@ -51,32 +62,48 @@ export function useSwapExecution({ quote, gasless, onSuccess }: UseSwapExecution
 
         setSwapId(swapResult.id);
         console.log("Gasless swap initiated:", swapResult);
-        
       } else {
         // Execute swap with user's own gas
         console.log("Executing self-paid swap...");
-        
-        const transactionData = await getFlyTransaction(quote.id);
-        
-        writeContract({
-          address: transactionData.to as `0x${string}`,
-          abi: [],
-          functionName: 'swap',
-          args: [],
-          value: BigInt(transactionData.value),
+
+        const isCross = Boolean(
+          (quote as any)?.route?.some?.(
+            (r: any) => r.fromChainId !== r.toChainId
+          )
+        );
+        const transactionData = await getFlyTransaction(quote.id, isCross);
+
+        // Send raw transaction (no ABI)
+        sendTransaction({
+          to: transactionData.to as `0x${string}`,
+          data: transactionData.data as `0x${string}`,
+          value: transactionData.value
+            ? BigInt(transactionData.value)
+            : undefined,
+          gas: transactionData.gasLimit
+            ? BigInt(transactionData.gasLimit)
+            : undefined,
+          gasPrice: transactionData.gasPrice
+            ? BigInt(transactionData.gasPrice)
+            : undefined,
         });
       }
 
       onSuccess?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Swap execution failed:", error);
-      setExecutionError(error instanceof Error ? error.message : "Swap execution failed");
+      const apiMsg =
+        typeof error?.message === "string"
+          ? error.message
+          : "Swap execution failed";
+      setExecutionError(apiMsg);
     } finally {
       setIsExecuting(false);
     }
-  }, [quote, address, gasless, writeContract, onSuccess]);
+  }, [quote, address, gasless, sendTransaction, onSuccess]);
 
-  const isLoading = isExecuting || isTransactionPending || isTransactionConfirming;
+  const isLoading =
+    isExecuting || isTransactionPending || isTransactionConfirming;
 
   return {
     executeSwap,

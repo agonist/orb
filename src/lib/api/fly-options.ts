@@ -26,6 +26,19 @@ export function getFlyTokensOptions(networkName?: string, offset: number = 0) {
   });
 }
 
+export function getFlyTokenSearchOptions(
+  networkName?: string,
+  searchValue?: string
+) {
+  return queryOptions({
+    queryKey: ["fly-token-search", networkName, searchValue],
+    queryFn: () => getFlyTokens(networkName, 0, searchValue),
+    enabled: Boolean(networkName && searchValue),
+    staleTime: 1000 * 30, // 30s
+    gcTime: 1000 * 60 * 5, // 5m
+  });
+}
+
 export function getFlyQuoteOptions(request: FlyQuoteRequest) {
   return queryOptions({
     queryKey: ["fly-quote", request],
@@ -33,11 +46,11 @@ export function getFlyQuoteOptions(request: FlyQuoteRequest) {
     staleTime: 1000 * 30, // 30 seconds
     gcTime: 1000 * 60 * 2, // 2 minutes
     enabled: Boolean(
-      request.fromTokenAddress &&
+      request.fromNetwork &&
+        request.toNetwork &&
+        request.fromTokenAddress &&
         request.toTokenAddress &&
-        request.amount &&
-        request.fromAddress &&
-        request.toAddress
+        request.sellAmount
     ),
   });
 }
